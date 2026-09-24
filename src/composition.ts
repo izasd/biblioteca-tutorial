@@ -7,6 +7,7 @@ import {
 } from "./modules/acervo";
 import { CorrigirTitulo } from "./modules/acervo/features/corrigir-titulo/CorrigirTitulo";
 import { ProjecaoDeLivros, SqliteAutorRepository } from "./modules/autoria";
+import { RegistrarAvaliacao } from "./modules/avaliacao/features/cadastrar-avaliacao/RegistrarAvaliacao";
 import type { Clock } from "./shared/Clock";
 import { EventBus } from "./shared/EventBus";
 import { AutorId } from "./shared/identifiers";
@@ -15,6 +16,7 @@ export type UseCases = {
   cadastrarLivro: CadastrarLivro;
   buscarLivro: BuscarLivro;
   corrigirTitulo: CorrigirTitulo;
+  registrarAvaliacao: RegistrarAvaliacao;
 };
 
 /**
@@ -37,5 +39,6 @@ export function buildUseCases(now: Clock = () => new Date()): UseCases {
     cadastrarLivro: new CadastrarLivro(livros, autoria, now, bus),
     buscarLivro: new BuscarLivro(livros, autoria),
     corrigirTitulo: new CorrigirTitulo(livros),
+    registrarAvaliacao: new RegistrarAvaliacao(avaliacoes, acervo),
   };
 }
