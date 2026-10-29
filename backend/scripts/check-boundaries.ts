@@ -16,10 +16,18 @@ const TABLE_OWNERS: Record<string, string> = {
   emprestimos: "circulation",
 };
 
+/** O mesmo vale para o Redis: o primeiro trecho de redisKey(...) diz o módulo dono da chave. */
+const KEY_OWNERS: Record<string, string> = {
+  autoria: "authorship",
+  acervo: "catalog",
+};
+
 /** Pasta da fatia (src/modules/<módulo>/features/<fatia>), ou null fora de uma fatia. */
 function sliceOf(path: string): string | null {
   const parts = path.split("/");
-  return parts[3] === "features" && parts[4] ? parts.slice(0, 5).join("/") : null;
+  return parts[3] === "features" && parts[4]
+    ? parts.slice(0, 5).join("/")
+    : null;
 }
 
 for await (const rawFile of new Glob("src/modules/**/*.ts").scan(".")) {
@@ -32,7 +40,10 @@ for await (const rawFile of new Glob("src/modules/**/*.ts").scan(".")) {
   const code = await Bun.file(file).text();
 
   for (const found of code.matchAll(/from\s+"(\.[^"]+)"/g)) {
-    const target = normalize(join(dirname(file), found[1]!)).replaceAll("\\", "/");
+    const target = normalize(join(dirname(file), found[1]!)).replaceAll(
+      "\\",
+      "/",
+    );
 
     if (!target.startsWith("src/modules/")) continue;
 
@@ -53,9 +64,23 @@ for await (const rawFile of new Glob("src/modules/**/*.ts").scan(".")) {
   for (const [table, owner] of Object.entries(TABLE_OWNERS)) {
     if (owner === module) continue;
 
-    if (new RegExp(`\\b(FROM|JOIN|INTO|UPDATE|TABLE|EXISTS)\\s+${table}\\b`, "i").test(code)) {
+    if (
+      new RegExp(
+        `\\b(FROM|JOIN|INTO|UPDATE|TABLE|EXISTS)\\s+${table}\\b`,
+        "i",
+      ).test(code)
+    ) {
       problems.push(
         `${file}\n      toca a tabela "${table}", que pertence a ${owner}`,
+      );
+    }
+  }
+
+  for (const found of code.matchAll(/redisKey\(\s*"(\w+)"/g)) {
+    const owner = KEY_OWNERS[found[1]!];
+    if (owner !== module) {
+      problems.push(
+        `${file}\n      toca a chave Redis "${found[1]}:*", que pertence a ${owner ?? "nenhum módulo"}`,
       );
     }
   }
@@ -68,14 +93,19 @@ for await (const rawFile of new Glob("src/modules/**/*.ts").scan(".")) {
 const FRONTEND = "../frontend";
 
 if (existsSync(FRONTEND)) {
-  for await (const rawFile of new Glob("src/modules/**/*.{ts,tsx}").scan(FRONTEND)) {
+  for await (const rawFile of new Glob("src/modules/**/*.{ts,tsx}").scan(
+    FRONTEND,
+  )) {
     const file = rawFile.replaceAll("\\", "/");
     const module = file.split("/")[2]!;
     const slice = sliceOf(file);
     const code = await Bun.file(join(FRONTEND, file)).text();
 
     for (const found of code.matchAll(/from\s+"(\.[^"]+)"/g)) {
-      const target = normalize(join(dirname(file), found[1]!)).replaceAll("\\", "/");
+      const target = normalize(join(dirname(file), found[1]!)).replaceAll(
+        "\\",
+        "/",
+      );
 
       if (!target.startsWith("src/modules/")) continue;
 
