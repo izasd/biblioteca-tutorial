@@ -2,6 +2,7 @@ import { inTransaction } from "../../../../infrastructure/transaction";
 import { civilDate } from "../../../../shared/dates";
 import type { BookInput, BookView } from "../../domain/Book";
 import type { CatalogIntegration } from "../../domain/CatalogIntegration";
+import { syncBookIndex } from "../../infrastructure/bookIndex";
 import {
   checkBookRules,
   toBookView,
@@ -26,5 +27,6 @@ export async function createBook(
   });
   // efeitos derivados só depois do COMMIT: antes dele, ninguém mais vê o livro novo
   await integration.bookCountsChanged([input.authorId]);
+  await syncBookIndex([book.id], integration);
   return book;
 }

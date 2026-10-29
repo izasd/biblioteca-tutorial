@@ -2,6 +2,7 @@ import { inTransaction } from "../../../../infrastructure/transaction";
 import { civilDate } from "../../../../shared/dates";
 import type { BookInput, BookView } from "../../domain/Book";
 import type { CatalogIntegration } from "../../domain/CatalogIntegration";
+import { syncBookIndex } from "../../infrastructure/bookIndex";
 import {
   checkBookRules,
   findBook,
@@ -26,5 +27,6 @@ export async function updateBook(
     return toBookView(tx, row!, integration, civilDate(now));
   });
   await integration.bookCountsChanged(authorIds);
+  await syncBookIndex([id], integration);
   return book;
 }
